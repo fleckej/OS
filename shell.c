@@ -1,4 +1,9 @@
 /*  Mini Shell
+	This program provides the user functionality of a shell in that it:
+		Continuously prompts the user for input (command to be executed)
+		Parses (tokenizes) the input into separate objects
+		Creates a child process to run those tokens as commands passed to execvp()
+	Program written by Logan Flecke
  */
 
 #include <stdio.h>
@@ -52,6 +57,7 @@ void tokenize(char *input, int *tokenc, char ***tokenv){
     *tokenc = token_i;                      // set tokenc as the total tokens + NULL
 }
 
+// create a child process and pass the tokens into execvp() to be run by the OS
 void startup(int tokenc, char **tokenv){
 	int rc = fork();
 	if (rc < 0) {
