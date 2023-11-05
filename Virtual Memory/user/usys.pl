@@ -39,3 +39,4 @@ entry("uptime");
 entry("getfilenum");
 entry("settickets");
 entry("getpinfo");
+entry("pgaccess");

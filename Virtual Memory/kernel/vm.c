@@ -10,6 +10,7 @@
  * the kernel's page table.
  */
 pagetable_t kernel_pagetable;
+int nests = 0;
 
 extern char etext[];  // kernel.ld sets this to end of kernel code.
 
@@ -436,4 +437,55 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
   } else {
     return -1;
   }
+}
+
+void
+vmprint(pagetable_t pagetable)
+{
+  // there are 2^9 = 512 PTEs in a page table.
+  for(int i = 0; i < 512; i++){
+    pte_t pte = pagetable[i];
+    if (pte & PTE_V){
+      for (int j = 0; j < nests; j++){
+        printf(" ..");
+      }
+      printf("%d: ", i); // index into page table
+      printf("pte %p ", pte); // page table entry / virtual address
+      printf("pa %p \n", PTE2PA(pte)); // physical address
+
+      if((pte & (PTE_R|PTE_W|PTE_X)) == 0){ // this has children
+        // this PTE points to a lower-level page table
+        nests++;
+        uint64 child = PTE2PA(pte);
+        vmprint((pagetable_t)child);
+        nests--;
+      }
+    }
+  }
+}
+
+void
+vmprint_start(pagetable_t pagetable)
+{
+  printf("page table %p\n", pagetable);
+  vmprint(pagetable);
+}
+
+// reports which pages have been accessed
+int
+pgaccess(char * start_va, int num_pages, int* bitmap, pagetable_t table)
+{
+  pte_t * pte;
+  int alloc = 0;
+
+  for (int i = 0; i < num_pages; i++)
+  {
+    pte = walk(table, (uint64)start_va + (i * PGSIZE), alloc);
+    if (((*pte & PTE_V) && (*pte & PTE_A))){
+      *pte = *pte ^ PTE_A;  // xor unsets bit in pte
+      alloc = (alloc | (1UL << 1));
+    }
+  }
+  either_copyout(1, (uint64)bitmap, &alloc, sizeof(int));
+  return 0;
 }

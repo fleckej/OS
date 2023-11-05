@@ -113,3 +113,17 @@ sys_getpinfo(void)
 {
   return getpinfo();
 }
+
+uint64
+sys_pgaccess(void)
+{
+  uint64 start_va; // starting virtual address of the first user page to check
+  int num_pages; // number of pages to check
+  uint64 bitmap; // user address to store the results into a bitmask
+
+  argaddr(0, &start_va);
+  argint(1, &num_pages);
+  argaddr(2, &bitmap);
+  
+  return pgaccess((char*)start_va, num_pages, (int*)bitmap, myproc()->pagetable);
+}

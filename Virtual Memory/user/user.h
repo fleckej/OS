@@ -1,6 +1,7 @@
 struct stat;
 struct pstat;
 struct proc;
+struct pagetable_t;
 
 // system calls
 int fork(void);
@@ -27,6 +28,7 @@ int uptime(void);
 int getfilenum(int);
 int settickets(int, struct proc*);
 int getpinfo(struct pstat*);
+int pgaccess(char*, int, int*);
 
 // ulib.c
 int stat(const char*, struct stat*);

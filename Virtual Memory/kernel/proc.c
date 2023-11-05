@@ -8,7 +8,6 @@
 #include "pstat.h"
 #include "random.h"
 #include <stdlib.h>
-// #include "user/user.h"
 #include "fcntl.h"
 
 struct cpu cpus[NCPU];
@@ -499,66 +498,6 @@ scheduler(void)
   }
 }
 
-// Per-CPU process scheduler.
-// Each CPU calls scheduler() after setting itself up.
-// Scheduler never returns.  It loops, doing:
-//  - choose a process to run.
-//  - swtch to start running that process.
-//  - eventually that process transfers control
-//    via swtch back to the scheduler.
-void
-lottery_scheduler(void)
-{
-  struct proc *p;
-  struct cpu *c = mycpu();
-  rand_init(10);
-  
-  c->proc = 0;
-  for(;;){
-    // Avoid deadlock by ensuring that devices can interrupt.
-    intr_on();
-
-    // select the ticket
-    int chosenticket = scaled_random(0, totaltickets);
-    int count = 0;
-
-    for(int i = 0; i < NPROC; i++) {
-      // increment count by the number of tickets at this index
-      count += (&s)->tickets[i];
-
-      // set the relevant process to schedule
-      p = &proc[i];
-      acquire(&p->lock);
-
-      // schedule the process that contains the randomly chosen ticket
-      if (count >= chosenticket && p->state == RUNNABLE){
-        if ((&s)->pid[i] || (&s)->tickets[i] || (&s)->ticks[i] || (&s)->inuse[i]){
-          p = &proc[i];
-          printf("pid: %d, tickets: %d, ticks: %d, proc: %s\n", (&s)->pid[i], (&s)->tickets[i], (&s)->ticks[i], p->name);
-        }
-        // Switch to chosen process.  It is the process's job
-        // to release its lock and then reacquire it
-        // before jumping back to us.
-        p->state = RUNNING;
-        c->proc = p;
-        swtch(&c->context, &p->context);
-
-        // Process is done running for now.
-        // It should have changed its p->state before coming back.
-        c->proc = 0;
-
-        // Increment the process ticks
-        (&s)->ticks[i]++;        
-        if ((&s)->ticks[i] > 5){
-          settickets((&s)->ticks[i] - 5, p);
-        }
-      }
-      release(&p->lock);
-    }
-  }
-}
-
-
 // Switch to scheduler.  Must hold only p->lock
 // and have changed proc->state. Saves and restores
 // intena because intena is a property of this
@@ -710,25 +649,6 @@ killed(struct proc *p)
   return k;
 }
 
-int
-getfilenum(int pid)
-{
-  struct proc *p;
-  int open = 0, fd;
-
-  for(p = proc; p < &proc[NPROC]; p++){
-    if (p->pid == pid){
-      for(fd = 0; fd < NOFILE; fd++){
-        if(p->ofile[fd]){
-          open++;
-        }
-      }
-      return open;
-    }
-  }
-  return -1;
-}
-
 // Copy to either a user address, or kernel address,
 // depending on usr_dst.
 // Returns 0 on success, -1 on error.
@@ -790,6 +710,25 @@ procdump(void)
 }
 
 int
+getfilenum(int pid)
+{
+  struct proc *p;
+  int open = 0, fd;
+
+  for(p = proc; p < &proc[NPROC]; p++){
+    if (p->pid == pid){
+      for(fd = 0; fd < NOFILE; fd++){
+        if(p->ofile[fd]){
+          open++;
+        }
+      }
+      return open;
+    }
+  }
+  return -1;
+}
+
+int
 settickets(int number, struct proc* p)
 {
   // cap for number is 70; tickets > 70 cause the shell to stall or infinite loop
@@ -815,7 +754,63 @@ getpinfo()
       (&s)->pid[i], (&s)->tickets[i], (&s)->ticks[i], (&s)->inuse[i], p->name);
     }
   }
-  
-
   return 0;
+}
+
+// Per-CPU process scheduler.
+// Each CPU calls scheduler() after setting itself up.
+// Scheduler never returns.  It loops, doing:
+//  - choose a process to run.
+//  - swtch to start running that process.
+//  - eventually that process transfers control
+//    via swtch back to the scheduler.
+void
+lottery_scheduler(void)
+{
+  struct proc *p;
+  struct cpu *c = mycpu();
+  rand_init(10);
+  
+  c->proc = 0;
+  for(;;){
+    // Avoid deadlock by ensuring that devices can interrupt.
+    intr_on();
+
+    // select the ticket
+    int chosenticket = scaled_random(0, totaltickets);
+    int count = 0;
+
+    for(int i = 0; i < NPROC; i++) {
+      // increment count by the number of tickets at this index
+      count += (&s)->tickets[i];
+
+      // set the relevant process to schedule
+      p = &proc[i];
+      acquire(&p->lock);
+
+      // schedule the process that contains the randomly chosen ticket
+      if (count >= chosenticket && p->state == RUNNABLE){
+        if ((&s)->pid[i] || (&s)->tickets[i] || (&s)->ticks[i] || (&s)->inuse[i]){
+          p = &proc[i];
+        }
+        // Switch to chosen process.  It is the process's job
+        // to release its lock and then reacquire it
+        // before jumping back to us.
+        p->state = RUNNING;
+        c->proc = p;
+        swtch(&c->context, &p->context);
+
+        // Process is done running for now.
+        // It should have changed its p->state before coming back.
+        c->proc = 0;
+
+        // Increment the process ticks
+        (&s)->ticks[i]++;        
+        if ((&s)->ticks[i] > 5){
+          settickets((&s)->ticks[i] - 5, p);
+        }
+      }
+      release(&p->lock);
+    }
+  }
 }

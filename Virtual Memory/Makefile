@@ -135,6 +135,7 @@ UPROGS=\
 	$U/_zombie\
 	$U/_filenum\
 	$U/_ticketsnum\
+	$U/_testpgaccess\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)

@@ -120,3 +120,8 @@ getpinfo:
  li a7, SYS_getpinfo
  ecall
  ret
+.global pgaccess
+pgaccess:
+ li a7, SYS_pgaccess
+ ecall
+ ret
