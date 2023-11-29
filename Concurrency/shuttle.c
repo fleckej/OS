@@ -106,14 +106,16 @@ int main(int argc, char *argv[]){
     // take passengers to the platform
     int i = 0;
     while (i < attendees){
-        sleep(rand()%2);
+        
         pthread_t c;
         long long int me = i;
         Pthread_create(&c, NULL, passenger, (void *)me);
+        sleep(rand()%2);
         i++;
-        if (i == attendees - 1){
-            break;
-        }
+        
+        // if (i == attendees - 1){
+        //     break;
+        // }
     }
     sleep(1);
 
