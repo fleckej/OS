@@ -1,4 +1,0 @@
-Start xv6:
-	make qemu
-Exit xv6:
-	ctrl-a x
